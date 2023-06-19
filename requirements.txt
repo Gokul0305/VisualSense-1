@@ -1,3 +1,4 @@
 opencv-python
-PySide2
+pyside6==5.14.2
 pykka
+Qt 5.14.2
