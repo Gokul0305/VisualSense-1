@@ -22,7 +22,7 @@ class USBCamera(Camera):
         self.is_acquiring = False       # Camera status
         self.acquisition_thread = None  # Thread variable
 
-    def start_acquisition(self, src, caller_actor):
+    def start_acquisition(self, src, caller_actor=None):
         """
         start_acquisition is used to start the acquisition of your camera
         :param src: source id
@@ -41,8 +41,11 @@ class USBCamera(Camera):
                 self.height = self.usbcam.get(cv2.CAP_PROP_FRAME_HEIGHT)
                 self.fps = self.usbcam.get(cv2.CAP_PROP_FPS)
                 self.frame_queue = Queue(maxsize=2*self.fps)
+                if self.caller_actor is not None:
+                    self.caller_actor.tell(Frame(frame_queue=self.frame_queue))
                 self.is_acquiring = True
                 self.acquisition_thread = Thread(target=self._acquire_frames)
+                self.acquisition_thread.daemon = True
                 self.acquisition_thread.start()
 
     def stop_acquisition(self):
@@ -53,7 +56,6 @@ class USBCamera(Camera):
         print("Closing your camera")
         if self.is_acquiring:
             self.is_acquiring = False
-            self.acquisition_thread.join()
             self.usbcam.release()
 
     def _acquire_frames(self):
@@ -65,4 +67,4 @@ class USBCamera(Camera):
             ret, frame = self.usbcam.read()
             if not ret:
                 break
-            self.caller_actor.tell(Frame(frame=frame))
+            self.frame_queue.put(frame)

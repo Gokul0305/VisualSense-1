@@ -17,11 +17,21 @@ class Frame:
     """
     Frame is message class which stores ImageQueue
     """
-    def __init__(self,frame):
+    def __init__(self,frame_queue):
         """
-        :param frame: it is a frame
+        :param frame_queue: it is a frame
         """
-        self.frame = frame
+        self.frame_queue = frame_queue
+
+class FrameProcess:
+    def __init__(self, frame_queue, flag):
+        self.frame_queue = frame_queue
+        self.flag = flag
+
+class ProcessFrame:
+    def __init__(self, frame_queue):
+        self.frame_queue = frame_queue
+
 
 class CamParams:
     def __init__(self,fps=None, height=None, width=None):
@@ -49,10 +59,4 @@ class FpsGetter:
             self.frame_count = 0
             self.start_time = time.time()
 
-class ProcessFrame:
-    def __init__(self, processed_frame):
-        self.processed_frame = processed_frame
 
-# class SetProcess:
-#     def __init__(self,correction):
-#         self.correction = correction

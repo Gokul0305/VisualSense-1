@@ -9,13 +9,14 @@ class ImageAcquisitionActor(pykka.ThreadingActor):
     """
     ImageAcquisitionActor is pykka ThreadingActor which interacts with camera classes like USBCamera/GIGECamera
     """
-    def __init__(self, camera_type, caller_actor):
+    def __init__(self, camera_type, caller_actor=None):
         """
         :param camera_type: camera_type
         """
         super().__init__()
         self.camera = CameraFactory.create_camera(camera_type)
         self.caller_actor = caller_actor
+        self.frame_queue = None
         self.fps_cal = FpsGetter()
 
     def on_receive(self, message):
@@ -26,11 +27,19 @@ class ImageAcquisitionActor(pykka.ThreadingActor):
 
         if isinstance(message, StartAcquisition):
             self.start_acquisition(message.src)
+            return self.camera.acquisition_thread.is_alive()
+
         elif isinstance(message, Frame):
-            self.caller_actor.tell(Frame(frame=message.frame))
+            self.frame_queue = message.frame_queue
+            print(self.frame_queue)
+            if self.caller_actor is not None:
+                self.caller_actor.tell(Frame(frame_queue=self.frame_queue))
+            # else:
+            #     self.process_frame_queue()
 
         elif isinstance(message, StopAcquisition):
             self.stop_acquisition()
+            return self.camera.acquisition_thread.is_alive()
 
     def start_acquisition(self, src):
         """
@@ -46,6 +55,14 @@ class ImageAcquisitionActor(pykka.ThreadingActor):
         :return: None
         """
         self.camera.stop_acquisition()
+
+    def process_frame_queue(self):
+        while self.camera.acquisition_thread.is_alive():
+            if self.frame_queue.qsize()>0:
+                self.display(frame=self.frame_queue.get())
+            if not self.camera.acquisition_thread.is_alive():
+                break
+
 
     def display(self,frame):
         """
